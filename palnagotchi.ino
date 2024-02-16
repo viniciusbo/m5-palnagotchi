@@ -56,7 +56,6 @@ typedef struct {
 
 const uint8_t max_peers = 256;
 uint8_t tot_peers = 0;
-
 pwngrid_peer peers[max_peers];
 
 void peerManager(DynamicJsonDocument json) {
@@ -202,8 +201,7 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
 
 uint8_t state;
 
-const int capacity = JSON_OBJECT_SIZE(11);
-StaticJsonDocument<capacity> peer_json;
+DynamicJsonDocument peer_json(2048);
 String json_str = "";
 int json_len = 0;
 
@@ -212,11 +210,11 @@ void setup() {
 
   init_m5();
 
-  wifi_config_t ap_config;
-  ap_config.ap.ssid_hidden = 1;
-  ap_config.ap.beacon_interval = 10000;
+  // wifi_config_t ap_config;
+  // ap_config.ap.ssid_hidden = 1;
+  // ap_config.ap.beacon_interval = 10000;
   //  ap_config.ap.ssid = "{name:\"Palnagotchi\",face=\"(x_x)\"}";
-  ap_config.ap.ssid_len = 0;
+  // ap_config.ap.ssid_len = 0;
 
   wifi_init_config_t WIFI_INIT_CONFIG = WIFI_INIT_CONFIG_DEFAULT();
   esp_wifi_init(&WIFI_INIT_CONFIG);
@@ -233,35 +231,52 @@ void setup() {
 
   peer_json["name"] = "Palnagotchi";
   peer_json["face"] = "(x_x)";
-  peer_json["epoch"] = 0;
+  peer_json["epoch"] = 1;
   peer_json["grid_version"] = "1.10.3";
   peer_json["identity"] =
       "32e9f315e92d974342c93d0fd952a914bfb4e6838953536ea6f63d54db6b9610";
   peer_json["pwnd_run"] = 0;
   peer_json["pwnd_tot"] = 0;
-  peer_json["session_id"] = "ff:ff:ff:ff:ff:ff";
-  peer_json["timestamp"] = 0;
-  peer_json["uptime"] = 0;
-  peer_json["version"] = "m5pal";
-  json_len = measureJson(peer_json);
+  peer_json["session_id"] = "a2:00:64:e6:0b:8b";
+  peer_json["timestamp"] = 255;
+  peer_json["uptime"] = 255;
+  peer_json["version"] = "1.8.4";
+  peer_json["policy"]["advertise"] = true;
+  peer_json["policy"]["ap_ttl"] = 32;
+  peer_json["policy"]["associate"] = true;
+  peer_json["policy"]["bond_encounters_factor"] = 20000;
+  peer_json["policy"]["bored_num_epochs"] = 0;
+  peer_json["policy"]["channels"][0] = 1;
+  peer_json["policy"]["channels"][1] = 2;
+  peer_json["policy"]["channels"][2] = 5;
+  peer_json["policy"]["channels"][3] = 10;
+  peer_json["policy"]["deauth"] = true;
+  peer_json["policy"]["excited_num_epochs"] = 255;
+  peer_json["policy"]["hop_recon_time"] = 33;
+  peer_json["policy"]["max_inactive_scale"] = 9;
+  peer_json["policy"]["max_interactions"] = 6;
+  peer_json["policy"]["max_misses_for_recon"] = 7;
+  peer_json["policy"]["min_recon_time"] = 30;
+  peer_json["policy"]["min_rssi"] = 0;
+  peer_json["policy"]["recon_inactive_multiplier"] = 2;
+  peer_json["policy"]["recon_time"] = 45;
+  peer_json["policy"]["sad_num_epochs"] = 45;
+  peer_json["policy"]["sta_ttl"] = 212;
 
+  json_len = measureJson(peer_json);
   serializeJson(peer_json, json_str);
+  serializeJson(peer_json, Serial);
   delay(2000);
 }
 
-uint8_t current_channel = 1;
-const uint8_t max_channel = 14;
-
-// Had to remove Radiotap headers, since its automatically added (guess from
-// physical layer?)
-// Also I had to remove the last 4 bytes (frame
-// check sequence, added from some TCP/IP layer?)
+// Had to remove Radiotap headers, since its automatically added
+// Also had to remove the last 4 bytes (frame check sequence)
 const uint8_t pwngrid_beacon_raw[] = {
     0x80, 0x00,                          // FC
     0x00, 0x00,                          // Duration
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  // DA (broadcast)
     0xde, 0xad, 0xbe, 0xef, 0xde, 0xad,  // SA
-    0xa2, 0x00, 0x64, 0xe6, 0x0b, 0x8b,  // BSSID
+    0xa1, 0x00, 0x64, 0xe6, 0x0b, 0x8b,  // BSSID
     0x40, 0x43,  // Sequence number/fragment number/seq-ctl
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Timestamp
     0x64, 0x00,                                      // Beacon interval
@@ -274,17 +289,36 @@ esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
                             bool en_sys_seq);
 
 esp_err_t advertisePalnagotchi(uint8_t channel) {
-  uint8_t pwngrid_beacon_frame[raw_beacon_len + json_len];
+  uint8_t header_count = 2 + (json_len / 255 * 2);
+  uint8_t pwngrid_beacon_frame[raw_beacon_len + json_len + header_count];
   memcpy(pwngrid_beacon_frame, pwngrid_beacon_raw, raw_beacon_len);
+  // Serial.println();
+  // Serial.print("Raw beacon len: ");
+  // Serial.println(raw_beacon_len);
+  // Serial.print("JSON len: ");
+  // Serial.println(json_len);
 
-  int current_byte = raw_beacon_len;
-
+  // Iterate through json string and copy it to beacon frame
+  int frame_byte = raw_beacon_len;
   for (int i = 0; i < json_len; i++) {
     // Write AC tags before every 255 bytes
+    // Serial.print(i);
+    // Serial.print(" ");
+
     if (i == 0 || i % 255 == 0) {
-      pwngrid_beacon_frame[current_byte++] = 0xde;  // AC = 222
-      // Prevent length overflow
-      pwngrid_beacon_frame[current_byte++] = (json_len - i) & 0xff;
+      pwngrid_beacon_frame[frame_byte++] = 0xde;  // AC = 222
+      uint8_t payload_len = 255;
+      if (json_len - i < 255) {
+        payload_len = json_len - i;
+      }
+
+      // Serial.print("payload len = ");
+      // Serial.println(payload_len);
+      // Serial.println("---");
+
+      // Serial.print("Payload len: ");
+      // Serial.println(payload_len);
+      pwngrid_beacon_frame[frame_byte++] = payload_len;
     }
 
     // Append json byte to frame
@@ -292,17 +326,31 @@ esp_err_t advertisePalnagotchi(uint8_t channel) {
     uint8_t next_byte = (uint8_t)'?';
     if (isAscii(json_str[i])) {
       next_byte = (uint8_t)json_str[i];
+    } else {
+      // Serial.println('not ascii');
     }
 
-    pwngrid_beacon_frame[current_byte++] = next_byte;
+    // Serial.print(" ");
+    // Serial.print((char)next_byte);
+    // Serial.print(" ");
+    pwngrid_beacon_frame[frame_byte++] = next_byte;
   }
 
+  for (int i = 0; i < sizeof(pwngrid_beacon_frame); i++) {
+    Serial.print((char)pwngrid_beacon_frame[i]);
+  }
+  Serial.println("---");
+
+  vTaskDelay(500 / portTICK_PERIOD_MS);
   esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
   // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv417esp_wifi_80211_tx16wifi_interface_tPKvib
+  vTaskDelay(102 / portTICK_PERIOD_MS);
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_STA, pwngrid_beacon_frame,
-                                       sizeof(pwngrid_beacon_frame), false);
+                                       sizeof(pwngrid_beacon_frame), true);
   return result;
 }
+
+uint8_t current_channel = 1;
 
 void loop() {
   M5Cardputer.update();
@@ -328,9 +376,10 @@ void loop() {
     state++;
   }
 
-  current_channel = (current_channel + 1) % (max_channel + 1);
-  esp_err_t result = advertisePalnagotchi(current_channel);
-  delay(100);
+  esp_err_t result = advertisePalnagotchi(current_channel++);
+  if (current_channel == 15) {
+    current_channel = 1;
+  }
 
   if (result == ESP_ERR_WIFI_IF) {
     M5Cardputer.Display.setTextColor(RED);
