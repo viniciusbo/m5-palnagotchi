@@ -50,8 +50,6 @@ esp_err_t advertisePalnagotchi(uint8_t channel) {
   peer_json["uptime"] = 255;
   peer_json["version"] = "1.8.4";
   peer_json["policy"]["advertise"] = true;
-  peer_json["policy"]["ap_ttl"] = 32;
-  peer_json["policy"]["associate"] = true;
   peer_json["policy"]["bond_encounters_factor"] = 20000;
   peer_json["policy"]["bored_num_epochs"] = 0;
   peer_json["policy"]["sad_num_epochs"] = 0;
@@ -88,6 +86,7 @@ esp_err_t advertisePalnagotchi(uint8_t channel) {
   }
 
   // vTaskDelay(500 / portTICK_PERIOD_MS);
+  // Channel switch not working?
   esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
   // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv417esp_wifi_80211_tx16wifi_interface_tPKvib
   vTaskDelay(102 / portTICK_PERIOD_MS);
