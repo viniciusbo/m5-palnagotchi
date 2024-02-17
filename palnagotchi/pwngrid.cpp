@@ -1,43 +1,92 @@
 #include "pwngrid.h"
 
-DynamicJsonDocument peer_json(2048);
-String json_str = "";
-int json_len = 0;
+// Had to remove Radiotap headers, since its automatically added
+// Also had to remove the last 4 bytes (frame check sequence)
+const uint8_t pwngrid_beacon_raw[] = {
+    0x80, 0x00,                          // FC
+    0x00, 0x00,                          // Duration
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  // DA (broadcast)
+    0xde, 0xad, 0xbe, 0xef, 0xde, 0xad,  // SA
+    0xa1, 0x00, 0x64, 0xe6, 0x0b, 0x8b,  // BSSID
+    0x40, 0x43,  // Sequence number/fragment number/seq-ctl
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Timestamp
+    0x64, 0x00,                                      // Beacon interval
+    0x11, 0x04,                                      // Capability info
+    // 0xde (AC = 222) + 1 byte payload len + payload (AC Header)
+    // For each 255 bytes of the payload, a new AC header should be set
+};
 
-esp_err_t advertisePalnagotchi(uint8_t channel) {
-  peer_json["name"] = "Palnagotchi";
-  peer_json["face"] = "(x_x)";
-  peer_json["epoch"] = 1;
-  peer_json["grid_version"] = "1.10.3";
-  peer_json["identity"] =
+const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
+
+typedef struct {
+  int epoch;
+  String face;
+  String grid_version;
+  String identity;
+  String name;
+  int pwnd_run;
+  int pwnd_tot;
+  String session_id;
+  int timestamp;
+  int uptime;
+  String version;
+} pwngrid_peer;
+
+const uint8_t max_peers = 256;
+uint8_t tot_peers = 0;
+pwngrid_peer peers[max_peers];
+
+DynamicJsonDocument pal_json(2048);
+String pal_json_str = "";
+int pal_json_len = 0;
+
+void initPwngrid() {
+  wifi_init_config_t WIFI_INIT_CONFIG = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&WIFI_INIT_CONFIG);
+  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  esp_wifi_set_mode(WIFI_MODE_AP);
+  esp_wifi_start();
+  esp_wifi_set_promiscuous_filter(&filt);
+  esp_wifi_set_promiscuous_rx_cb(&pwnSnifferCallback);
+  esp_wifi_set_promiscuous(true);
+  esp_wifi_set_ps(WIFI_PS_NONE);
+}
+
+esp_err_t advertisePalnagotchi(uint8_t channel, uint32_t uptime, String face) {
+  pal_json["pal"] = true;  // Also detect other Palnagotchis
+  pal_json["name"] = "Palnagotchi";
+  pal_json["face"] = face;
+  pal_json["epoch"] = 1;
+  pal_json["grid_version"] = "1.10.3";
+  pal_json["identity"] =
       "32e9f315e92d974342c93d0fd952a914bfb4e6838953536ea6f63d54db6b9610";
-  peer_json["pwnd_run"] = 0;
-  peer_json["pwnd_tot"] = 0;
-  peer_json["session_id"] = "a2:00:64:e6:0b:8b";
-  peer_json["timestamp"] = 255;
-  peer_json["uptime"] = 255;
-  peer_json["version"] = "1.8.4";
-  peer_json["policy"]["advertise"] = true;
-  peer_json["policy"]["bond_encounters_factor"] = 20000;
-  peer_json["policy"]["bored_num_epochs"] = 0;
-  peer_json["policy"]["sad_num_epochs"] = 0;
-  peer_json["policy"]["excited_num_epochs"] = 9999;
+  pal_json["pwnd_run"] = 0;
+  pal_json["pwnd_tot"] = 0;
+  pal_json["session_id"] = "a2:00:64:e6:0b:8b";
+  pal_json["timestamp"] = 255;
+  pal_json["uptime"] = uptime;
+  pal_json["version"] = "1.8.4";
+  pal_json["policy"]["advertise"] = true;
+  pal_json["policy"]["bond_encounters_factor"] = 20000;
+  pal_json["policy"]["bored_num_epochs"] = 0;
+  pal_json["policy"]["sad_num_epochs"] = 0;
+  pal_json["policy"]["excited_num_epochs"] = 9999;
 
-  int json_len = measureJson(peer_json);
-  serializeJson(peer_json, json_str);
-  uint8_t header_len = 2 + (json_len / 255 * 2);
-  uint8_t pwngrid_beacon_frame[raw_beacon_len + json_len + header_len];
+  int pal_json_len = measureJson(pal_json);
+  serializeJson(pal_json, pal_json_str);
+  uint8_t header_len = 2 + (pal_json_len / 255 * 2);
+  uint8_t pwngrid_beacon_frame[raw_beacon_len + pal_json_len + header_len];
   memcpy(pwngrid_beacon_frame, pwngrid_beacon_raw, raw_beacon_len);
 
   // Iterate through json string and copy it to beacon frame
   int frame_byte = raw_beacon_len;
-  for (int i = 0; i < json_len; i++) {
+  for (int i = 0; i < pal_json_len; i++) {
     // Write AC and len tags before every 255 bytes
     if (i == 0 || i % 255 == 0) {
       pwngrid_beacon_frame[frame_byte++] = 0xde;  // AC = 222
       uint8_t payload_len = 255;
-      if (json_len - i < 255) {
-        payload_len = json_len - i;
+      if (pal_json_len - i < 255) {
+        payload_len = pal_json_len - i;
       }
 
       pwngrid_beacon_frame[frame_byte++] = payload_len;
@@ -46,8 +95,8 @@ esp_err_t advertisePalnagotchi(uint8_t channel) {
     // Append json byte to frame
     // If current byte is not ascii, add ? instead
     uint8_t next_byte = (uint8_t)'?';
-    if (isAscii(json_str[i])) {
-      next_byte = (uint8_t)json_str[i];
+    if (isAscii(pal_json_str[i])) {
+      next_byte = (uint8_t)pal_json_str[i];
     }
 
     pwngrid_beacon_frame[frame_byte++] = next_byte;
@@ -62,10 +111,6 @@ esp_err_t advertisePalnagotchi(uint8_t channel) {
                                        sizeof(pwngrid_beacon_frame), true);
   return result;
 }
-
-const uint8_t max_peers = 256;
-uint8_t tot_peers = 0;
-pwngrid_peer peers[max_peers];
 
 void peerManager(DynamicJsonDocument json) {
   // Skip if peer list is full

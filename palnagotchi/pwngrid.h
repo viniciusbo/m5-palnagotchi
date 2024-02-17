@@ -4,40 +4,9 @@
 #include "esp_wifi_types.h"
 #include "freertos/FreeRTOS.h"
 
-// Had to remove Radiotap headers, since its automatically added
-// Also had to remove the last 4 bytes (frame check sequence)
-const uint8_t pwngrid_beacon_raw[] = {
-    0x80, 0x00,                          // FC
-    0x00, 0x00,                          // Duration
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff,  // DA (broadcast)
-    0xde, 0xad, 0xbe, 0xef, 0xde, 0xad,  // SA
-    0xa1, 0x00, 0x64, 0xe6, 0x0b, 0x8b,  // BSSID
-    0x40, 0x43,  // Sequence number/fragment number/seq-ctl
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // Timestamp
-    0x64, 0x00,                                      // Beacon interval
-    0x11, 0x04,                                      // Capability info
-    // 0xde (AC = 222) + 1 byte payload len + payload (AC Header)
-    // For each 255 bytes of the payload, a new AC header should be set
-};
-
-const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
-
-typedef struct {
-  int epoch;
-  String face;
-  String grid_version;
-  String identity;
-  String name;
-  int pwnd_run;
-  int pwnd_tot;
-  String session_id;
-  int timestamp;
-  int uptime;
-  String version;
-} pwngrid_peer;
-
 void initPwngrid();
-esp_err_t advertisePalnagotchi(uint8_t channel);
+esp_err_t advertisePalnagotchi(uint8_t channel, uint32_t uptime, String face);
+
 void peerManager(DynamicJsonDocument json);
 
 // Detect pwnagotchi adapted from Marauder
