@@ -1,37 +1,5 @@
 #include "pwngrid.h"
 
-const uint8_t max_peers = 256;
-uint8_t tot_peers = 0;
-pwngrid_peer peers[max_peers];
-
-void peerManager(DynamicJsonDocument json) {
-  // Skip if peer list is full
-  if (tot_peers == max_peers) {
-    return;
-  }
-
-  for (int i = 0; i < tot_peers; i++) {
-    String identity = json["identity"].as<String>();
-    // Check if peer identity is already in peers array
-    if (peers[i].identity == identity) {
-      return;
-    }
-
-    peers[tot_peers].name = json["name"].as<String>();
-    peers[tot_peers].face = json["face"].as<String>();
-    peers[tot_peers].epoch = json["epoch"].as<int>();
-    peers[tot_peers].grid_version = json["grid_version"].as<String>();
-    peers[tot_peers].identity = json["identity"].as<String>();
-    peers[tot_peers].pwnd_run = json["pwnd_run"].as<int>();
-    peers[tot_peers].pwnd_tot = json["pwnd_tot"].as<int>();
-    peers[tot_peers].session_id = json["session_id"].as<String>();
-    peers[tot_peers].timestamp = json["timestamp"].as<int>();
-    peers[tot_peers].uptime = json["uptime"].as<int>();
-    peers[tot_peers].version = json["version"].as<String>();
-    tot_peers++;
-  }
-}
-
 DynamicJsonDocument peer_json(2048);
 String json_str = "";
 int json_len = 0;
@@ -93,6 +61,38 @@ esp_err_t advertisePalnagotchi(uint8_t channel) {
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_AP, pwngrid_beacon_frame,
                                        sizeof(pwngrid_beacon_frame), true);
   return result;
+}
+
+const uint8_t max_peers = 256;
+uint8_t tot_peers = 0;
+pwngrid_peer peers[max_peers];
+
+void peerManager(DynamicJsonDocument json) {
+  // Skip if peer list is full
+  if (tot_peers == max_peers) {
+    return;
+  }
+
+  for (int i = 0; i < tot_peers; i++) {
+    String identity = json["identity"].as<String>();
+    // Check if peer identity is already in peers array
+    if (peers[i].identity == identity) {
+      return;
+    }
+
+    peers[tot_peers].name = json["name"].as<String>();
+    peers[tot_peers].face = json["face"].as<String>();
+    peers[tot_peers].epoch = json["epoch"].as<int>();
+    peers[tot_peers].grid_version = json["grid_version"].as<String>();
+    peers[tot_peers].identity = json["identity"].as<String>();
+    peers[tot_peers].pwnd_run = json["pwnd_run"].as<int>();
+    peers[tot_peers].pwnd_tot = json["pwnd_tot"].as<int>();
+    peers[tot_peers].session_id = json["session_id"].as<String>();
+    peers[tot_peers].timestamp = json["timestamp"].as<int>();
+    peers[tot_peers].uptime = json["uptime"].as<int>();
+    peers[tot_peers].version = json["version"].as<String>();
+    tot_peers++;
+  }
 }
 
 // Detect pwnagotchi adapted from Marauder
