@@ -41,7 +41,7 @@ void wakeUp() {
   drawBottomCanvas();
 }
 
-void advertise() {
+void advertise(uint8_t channel) {
   uint32_t elapsed = millis() - last_mood_switch;
   if (elapsed > 10000) {
     setMood(random(2, 21));
@@ -49,12 +49,8 @@ void advertise() {
     last_mood_switch = millis();
   }
 
-  uint32_t uptime = millis() / 1000;
   esp_err_t result =
-      advertisePalnagotchi(current_channel++, uptime, getCurrentFace());
-  if (current_channel == 15) {
-    current_channel = 1;
-  }
+      advertisePalnagotchi(channel, system_boot_time, getCurrentFace());
 
   if (result == ESP_ERR_WIFI_IF) {
     showMood(broken_face, "Error: invalid interface", true);
@@ -81,6 +77,11 @@ void loop() {
   }
 
   if (state == STATE_ADVT) {
-    advertise();
+    drawTopCanvas(current_channel);
+    // drawBottomCanvas();
+    advertise(current_channel++);
+    if (current_channel == 15) {
+      current_channel = 1;
+    }
   }
 }

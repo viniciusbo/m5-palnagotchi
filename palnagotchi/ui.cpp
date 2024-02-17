@@ -11,7 +11,7 @@ int32_t canvas_center_x;
 int32_t canvas_top_h;
 int32_t canvas_bot_h;
 
-void drawTopCanvas() {
+void drawTopCanvas(uint8_t channel) {
   canvas_top.clear(BLACK);
   canvas_top.setTextSize(1);
   canvas_top.setTextColor(GREEN);
@@ -19,7 +19,15 @@ void drawTopCanvas() {
   canvas_top.setTextDatum(top_left);
   canvas_top.drawString("CH *", 0, 3);
   canvas_top.setTextDatum(top_right);
-  canvas_top.drawString("UPS 100\%  UP 00:00:00", display_w, 3);
+  unsigned long ellapsed = millis() / 1000;
+  int8_t h = ellapsed / 3600;
+  int sr = ellapsed % 3600;
+  int8_t m = sr / 60;
+  int8_t s = sr % 60;
+  char right_str[50] = "UPS 0\%  UP 00:00:00";
+  sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", M5.Power.getBatteryLevel(),
+          h, m, s);
+  canvas_top.drawString(right_str, display_w, 3);
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 
   M5Cardputer.Display.startWrite();
@@ -27,13 +35,21 @@ void drawTopCanvas() {
   M5Cardputer.Display.endWrite();
 }
 
-void drawBottomCanvas() {
+void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
+                      String last_friend_name) {
   canvas_bot.clear(BLACK);
   canvas_bot.setTextSize(1);
   canvas_bot.setTextColor(GREEN);
   canvas_bot.setColor(GREEN);
   canvas_bot.setTextDatum(top_left);
-  canvas_bot.drawString("FRND 0 (0) [nikoV]", 0, 5);
+
+  char stats[50] = "FRND 0 (0)";
+  if (last_friend_name != "") {
+    sprintf(stats, "FRND %d (%d) [%s]", friends_run, friends_tot,
+            last_friend_name);
+  }
+
+  canvas_bot.drawString(stats, 0, 5);
   canvas_bot.setTextDatum(top_right);
   canvas_bot.drawString("NOT AI", display_w, 5);
   canvas_bot.drawLine(0, 0, display_w, 0);
