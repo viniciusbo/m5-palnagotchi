@@ -30,3 +30,4 @@ uint8_t getRunTotalPeers();
 uint8_t getTotalPeers();
 String getLastFriendName();
 signed int getClosestRssi();
+void checkGoneFriends();

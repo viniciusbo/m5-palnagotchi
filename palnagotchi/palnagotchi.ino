@@ -75,6 +75,7 @@ void loop() {
   }
 
   if (state == STATE_ADVT) {
+    checkGoneFriends();
     drawTopCanvas(current_channel);
     drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName(),
                      getClosestRssi());

@@ -112,12 +112,16 @@ void addPeer(DynamicJsonDocument json, signed int rssi) {
   for (int i = 0; i < friends_tot; i++) {
     // Check if peer identity is already in peers array
     if (friends_list[i].identity == identity) {
+      friends_list[i].last_ping = millis();
       friends_list[i].gone = false;
       friends_list[i].rssi = rssi;
       return;
     }
   }
 
+  friends_list[friends_tot].rssi = rssi;
+  friends_list[friends_tot].last_ping = millis();
+  friends_list[friends_tot].gone = false;
   friends_list[friends_tot].name = json["name"].as<String>();
   friends_list[friends_tot].face = json["face"].as<String>();
   friends_list[friends_tot].epoch = json["epoch"].as<int>();
@@ -129,9 +133,6 @@ void addPeer(DynamicJsonDocument json, signed int rssi) {
   friends_list[friends_tot].timestamp = json["timestamp"].as<int>();
   friends_list[friends_tot].uptime = json["uptime"].as<int>();
   friends_list[friends_tot].version = json["version"].as<String>();
-  friends_list[friends_tot].rssi = rssi;
-  friends_list[friends_tot].last_ping = millis();
-  friends_list[friends_tot].gone = false;
   friend_last_name = friends_list[friends_tot].name;
   friends_tot++;
   EEPROM.write(0, friends_tot);
@@ -218,14 +219,27 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
         }
 
         DynamicJsonDocument json(1024);  // ArduinoJson v6
-
-        if (deserializeJson(json, essid)) {
-          // Serial.println("\nCould not parse Pwnagotchi json");
-        } else {
+        ArduinoJson::V6215PB2::DeserializationError result =
+            deserializeJson(json, essid);
+        if (result == ArduinoJson::V6215PB2::DeserializationError::Ok) {
           // Serial.println("\nSuccessfully parsed json");
           // serializeJson(json, Serial);  // ArduinoJson v6
-          Serial.println(snifferPacket->rx_ctrl.rssi);
           addPeer(json, snifferPacket->rx_ctrl.rssi);
+        } else if (result == ArduinoJson::V6215PB2::DeserializationError::
+                                 IncompleteInput) {
+          Serial.println("Deserialization error: incomplete input");
+        } else if (result ==
+                   ArduinoJson::V6215PB2::DeserializationError::NoMemory) {
+          Serial.println("Deserialization error: no memory");
+        } else if (result ==
+                   ArduinoJson::V6215PB2::DeserializationError::InvalidInput) {
+          Serial.println("Deserialization error: invalid input");
+        } else if (result ==
+                   ArduinoJson::V6215PB2::DeserializationError::TooDeep) {
+          Serial.println("Deserialization error: too deep");
+        } else {
+          Serial.println(essid);
+          Serial.println("Deserialization error");
         }
       }
     }
