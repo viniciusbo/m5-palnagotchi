@@ -18,7 +18,7 @@ const uint8_t pwngrid_beacon_raw[] = {
 
 const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
 
-uint16_t friends_tot = 0;
+uint8_t friends_tot = 0;
 pwngrid_peer friends_list[1024];
 String friend_last_name = "";
 
@@ -26,8 +26,14 @@ DynamicJsonDocument pal_json(2048);
 String pal_json_str = "";
 int pal_json_len = 0;
 
-uint16_t getRunTotalPeers() { return friends_tot; }
-uint16_t getTotalPeers() { return friends_tot; }
+uint8_t getRunTotalPeers() { return friends_tot; }
+uint8_t getTotalPeers() {
+  if (EEPROM.length() == 0) {
+    return friends_tot;
+  }
+
+  return EEPROM.read(0);
+}
 String getLastFriendName() { return friend_last_name; }
 
 void getPeers(pwngrid_peer *buffer) {
@@ -101,7 +107,7 @@ esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
   return result;
 }
 
-void peerManager(DynamicJsonDocument json, signed int rssi) {
+void addPeer(DynamicJsonDocument json, signed int rssi) {
   String identity = json["identity"].as<String>();
 
   for (int i = 0; i < friends_tot; i++) {
@@ -122,9 +128,10 @@ void peerManager(DynamicJsonDocument json, signed int rssi) {
   friends_list[friends_tot].timestamp = json["timestamp"].as<int>();
   friends_list[friends_tot].uptime = json["uptime"].as<int>();
   friends_list[friends_tot].version = json["version"].as<String>();
-  friends_list[friends_tot].rssi = json["version"].as<signed int>();
+  friends_list[friends_tot].rssi = rssi;
   friend_last_name = friends_list[friends_tot].name;
   friends_tot++;
+  EEPROM.write(0, friends_tot);
 }
 
 // Detect pwnagotchi adapted from Marauder
@@ -188,7 +195,7 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
         } else {
           // Serial.println("\nSuccessfully parsed json");
           // serializeJson(json, Serial);  // ArduinoJson v6
-          peerManager(json, snifferPacket->rx_ctrl.rssi);
+          addPeer(json, snifferPacket->rx_ctrl.rssi);
         }
       }
     }

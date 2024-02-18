@@ -1,4 +1,5 @@
 #include "ArduinoJson.h"
+#include "EEPROM.h"
 #include "M5Cardputer.h"
 #include "M5Unified.h"
 #include "esp_wifi.h"
@@ -23,7 +24,6 @@ typedef struct {
 void initPwngrid();
 esp_err_t advertisePalnagotchi(uint8_t channel, String face);
 void getPeers(pwngrid_peer *buffer);
-uint16_t getRunTotalPeers();
-uint16_t getTotalPeers();
+uint8_t getRunTotalPeers();
+uint8_t getTotalPeers();
 String getLastFriendName();
-void peerManager(DynamicJsonDocument json);
