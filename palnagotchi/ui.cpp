@@ -3,7 +3,7 @@
 M5Canvas canvas_top(&M5.Display);
 M5Canvas canvas_main(&M5.Display);
 M5Canvas canvas_bot(&M5.Display);
-M5Canvas canvas_peers_menu(&canvas_main);
+// M5Canvas canvas_peers_menu(&M5.Display);
 
 int32_t display_w;
 int32_t display_h;
@@ -39,8 +39,6 @@ void initUi() {
 bool menu_open = false;
 
 void updateUi(bool show_toolbars, bool show_menu) {
-  drawTopCanvas();
-
   uint8_t mood_id = getCurrentMoodId();
   String mood_face = getCurrentMoodFace();
   String mood_phrase = getCurrentMoodPhrase();
@@ -49,21 +47,17 @@ void updateUi(bool show_toolbars, bool show_menu) {
   drawTopCanvas();
   drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName(),
                    getClosestRssi());
-  drawMood(mood_face, mood_phrase, mood_broken);
-  drawPeersMenu();
+
+  if (show_menu) {
+    drawPeersMenu();
+  } else {
+    drawMood(mood_face, mood_phrase, mood_broken);
+  }
 
   M5.Display.startWrite();
   if (show_toolbars) {
     canvas_top.pushSprite(0, 0);
     canvas_bot.pushSprite(0, canvas_top_h + canvas_h);
-  }
-
-  if (show_menu) {
-    canvas_peers_menu.createSprite(floor(display_w * .7), canvas_h);
-    canvas_peers_menu.pushSprite(display_w * .1, 0);
-  } else {
-    // canvas_peers_menu.fillSprite(BLACK);
-    canvas_peers_menu.deleteSprite();
   }
   canvas_main.pushSprite(0, canvas_top_h);
   M5.Display.endWrite();
@@ -137,7 +131,7 @@ void drawMood(String face, String phrase, bool broken) {
 
   canvas_main.setTextSize(4);
   canvas_main.setTextDatum(middle_center);
-  canvas_main.clear(BLACK);
+  canvas_main.fillSprite(BLACK);
   canvas_main.drawString(face, canvas_center_x, canvas_h / 2);
   canvas_main.setTextDatum(bottom_center);
   canvas_main.setTextSize(1);
@@ -147,14 +141,13 @@ void drawMood(String face, String phrase, bool broken) {
 void drawPeersMenu() {
   // canvas_peers_menu.fillRectAlpha(0, 0, canvas_peers_menu_w,
   //                                 canvas_peers_menu_h, 125, MAGENTA);
-  canvas_peers_menu.fillSprite(BLACK);
-  canvas_peers_menu.setTextSize(1);
-  canvas_peers_menu.setTextColor(GREEN);
-  canvas_peers_menu.setColor(GREEN);
-  canvas_peers_menu.setTextDatum(top_left);
-  canvas_peers_menu.println("> Back");
-  canvas_peers_menu.println("> No peers found. Seriosly?");
-  canvas_peers_menu.pushSprite(0, canvas_top_h);
+  canvas_main.fillSprite(BLACK);
+  canvas_main.setTextSize(1);
+  canvas_main.setTextColor(GREEN);
+  canvas_main.setColor(GREEN);
+  canvas_main.setTextDatum(top_left);
+  canvas_main.println("> Back");
+  canvas_main.println("> No peers found. Seriosly?");
 }
 
 // #define ARROW_UP ';'
