@@ -37,19 +37,63 @@ void initUi() {
 }
 
 bool menu_open = false;
+uint8_t menu_current_opt = 0;
+bool keyboard_changed = false;
 
-void updateUi(bool show_toolbars, bool show_menu) {
+bool toggleMenuBtnPressed() {
+  return M5Cardputer.BtnA.isPressed() ||
+         (keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('m') ||
+                               M5Cardputer.Keyboard.isKeyPressed('`')));
+}
+
+bool isOkPressed() {
+  return M5Cardputer.BtnA.isPressed() ||
+         (keyboard_changed && M5Cardputer.Keyboard.isKeyPressed(KEY_ENTER));
+}
+
+bool isNextPressed() {
+  return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed('.') ||
+                              M5Cardputer.Keyboard.isKeyPressed('/') ||
+                              M5Cardputer.Keyboard.isKeyPressed(KEY_TAB));
+}
+bool isPrevPressed() {
+  return keyboard_changed && (M5Cardputer.Keyboard.isKeyPressed(',') ||
+                              M5Cardputer.Keyboard.isKeyPressed(';'));
+}
+
+void updateUi(bool show_toolbars) {
+  keyboard_changed = M5Cardputer.Keyboard.isChange();
+
+  if (toggleMenuBtnPressed()) {
+    menu_open = !menu_open;
+  }
+
+  if (menu_open == true) {
+    if (isNextPressed()) {
+      menu_current_opt++;
+    }
+
+    if (isPrevPressed()) {
+      if (menu_current_opt > 0) {
+        menu_current_opt--;
+      }
+    }
+
+    if (isOkPressed()) {
+    }
+  }
+
   uint8_t mood_id = getCurrentMoodId();
   String mood_face = getCurrentMoodFace();
   String mood_phrase = getCurrentMoodPhrase();
   bool mood_broken = isCurrentMoodBroken();
 
   drawTopCanvas();
-  drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName(),
-                   getClosestRssi());
+  drawBottomCanvas(getPwngridRunTotalPeers(), getPwngridTotalPeers(),
+                   getPwngridLastFriendName(), getPwngridClosestRssi());
 
-  if (show_menu) {
-    drawPeersMenu();
+  if (menu_open) {
+    drawMenu(menu_current_opt);
   } else {
     drawMood(mood_face, mood_phrase, mood_broken);
   }
@@ -138,20 +182,41 @@ void drawMood(String face, String phrase, bool broken) {
   canvas_main.drawString(phrase, canvas_center_x, canvas_h - 23);
 }
 
-void drawPeersMenu() {
+#define ROW_SIZE 40
+#define PADDING 5
+
+struct MENU {
+  char name[25];
+  int command;
+};
+
+MENU main_menu[] = {
+    {"Nearby Pwnagotchis", 2},
+    {"Change name", 4},
+};
+
+int main_menu_size = sizeof(main_menu) / sizeof(MENU);
+
+void drawMenu(uint8_t opt) {
   // canvas_peers_menu.fillRectAlpha(0, 0, canvas_peers_menu_w,
   //                                 canvas_peers_menu_h, 125, MAGENTA);
+  // pwngrid_peer* pwngrid_peers = getPwngridPeers();
+  // pwngrid_peer pwngrid_peers[5] = {
+  //     {.name = "Fake 1"}, {.name = "Fake 2"}, {.name = "Fake 3"}};
   canvas_main.fillSprite(BLACK);
-  canvas_main.setTextSize(1);
+  canvas_main.setTextSize(2);
   canvas_main.setTextColor(GREEN);
   canvas_main.setColor(GREEN);
   canvas_main.setTextDatum(top_left);
-  canvas_main.println("> Back");
-  canvas_main.println("> No peers found. Seriosly?");
-}
 
-// #define ARROW_UP ';'
-// #define ARROW_DOWN '.'
+  for (uint8_t i = 0; i < main_menu_size; i++) {
+    // canvas_main.drawString(pwngrid_peers[i].name, 0, 0);
+    char display_str[255] = "";
+    sprintf(display_str, "%s %s", (opt == i) ? ">" : " ", main_menu[i].name);
+    int y = PADDING + (i * ROW_SIZE / 2);
+    canvas_main.drawString(display_str, 0, y);
+  }
+}
 
 // bool check_prev_press() {
 //   if (M5.Keyboard.isKeyPressed(ARROW_UP)) {

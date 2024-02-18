@@ -24,10 +24,10 @@ typedef struct {
 } pwngrid_peer;
 
 void initPwngrid();
-esp_err_t advertisePalnagotchi(uint8_t channel, String face);
-void getPeers(pwngrid_peer *buffer);
-uint8_t getRunTotalPeers();
-uint8_t getTotalPeers();
-String getLastFriendName();
-signed int getClosestRssi();
-void checkGoneFriends();
+esp_err_t pwngridAdvertise(uint8_t channel, String face);
+pwngrid_peer* getPwngridPeers();
+uint8_t getPwngridRunTotalPeers();
+uint8_t getPwngridTotalPeers();
+String getPwngridLastFriendName();
+signed int getPwngridClosestRssi();
+void checkPwngridGoneFriends();

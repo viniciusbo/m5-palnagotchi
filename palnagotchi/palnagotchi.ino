@@ -24,7 +24,6 @@ void setup() {
 }
 
 uint8_t current_channel = 1;
-uint32_t system_boot_time = millis();
 uint32_t last_mood_switch = 10001;
 
 void wakeUp() {
@@ -42,7 +41,7 @@ void advertise(uint8_t channel) {
     last_mood_switch = millis();
   }
 
-  esp_err_t result = advertisePalnagotchi(channel, getCurrentMoodFace());
+  esp_err_t result = pwngridAdvertise(channel, getCurrentMoodFace());
 
   if (result == ESP_ERR_WIFI_IF) {
     setMood(MOOD_BROKEN, "", "Error: invalid interface", true);
@@ -56,8 +55,6 @@ void advertise(uint8_t channel) {
   }
 }
 
-bool peer_menu_open = false;
-
 void loop() {
   M5.update();
   M5Cardputer.update();
@@ -67,22 +64,17 @@ void loop() {
   }
 
   if (state == STATE_INIT) {
-    // wakeUp();
+    wakeUp();
     state = STATE_ADVT;
   }
 
   if (state == STATE_ADVT) {
-    checkGoneFriends();
+    checkPwngridGoneFriends();
     advertise(current_channel++);
     if (current_channel == 15) {
       current_channel = 1;
     }
-
-    if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
-      peer_menu_open = !peer_menu_open;
-    }
-    Serial.println(peer_menu_open);
   }
 
-  updateUi(true, peer_menu_open);
+  updateUi(true);
 }
