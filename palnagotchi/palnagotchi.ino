@@ -1,7 +1,5 @@
 #include "M5Cardputer.h"
 #include "M5Unified.h"
-#include "mood.h"
-#include "pwngrid.h"
 #include "ui.h"
 
 #define STATE_INIT 0
@@ -11,8 +9,11 @@
 uint8_t state;
 
 void initM5() {
+  auto cfg = M5.config();
   M5.begin();
   M5.Display.begin();
+  M5Cardputer.begin(cfg);
+  M5Cardputer.Keyboard.begin();
 }
 
 void setup() {
@@ -26,12 +27,10 @@ uint8_t current_channel = 1;
 uint32_t system_boot_time = millis();
 uint32_t last_mood_switch = 10001;
 
-const String broken_face = palnagotchi_moods[MOOD_BROKEN];
-
 void wakeUp() {
   for (uint8_t i = 0; i < 3; i++) {
     setMood(i);
-    showMood(getCurrentFace(), getCurrentMood());
+    updateUi();
     delay(1250);
   }
 }
@@ -40,50 +39,50 @@ void advertise(uint8_t channel) {
   uint32_t elapsed = millis() - last_mood_switch;
   if (elapsed > 50000) {
     setMood(random(2, 21));
-    showMood(getCurrentFace(), getCurrentMood());
     last_mood_switch = millis();
   }
 
-  esp_err_t result = advertisePalnagotchi(channel, getCurrentFace());
+  esp_err_t result = advertisePalnagotchi(channel, getCurrentMoodFace());
 
   if (result == ESP_ERR_WIFI_IF) {
-    showMood(broken_face, "Error: invalid interface", true);
+    setMood(MOOD_BROKEN, "", "Error: invalid interface", true);
     state = STATE_HALT;
   } else if (result == ESP_ERR_INVALID_ARG) {
-    showMood(broken_face, "Error: invalid argument", true);
+    setMood(MOOD_BROKEN, "", "Error: invalid argument", true);
     state = STATE_HALT;
   } else if (result != ESP_OK) {
-    showMood(broken_face, "Error: unknown", true);
+    setMood(MOOD_BROKEN, "", "Error: unknown", true);
     state = STATE_HALT;
   }
 }
 
-bool peer_menu_open = true;
+bool peer_menu_open = false;
 
 void loop() {
   M5.update();
+  M5Cardputer.update();
 
   if (state == STATE_HALT) {
     return;
   }
 
   if (state == STATE_INIT) {
-    wakeUp();
+    // wakeUp();
     state = STATE_ADVT;
   }
 
   if (state == STATE_ADVT) {
     checkGoneFriends();
-    drawTopCanvas(current_channel);
-    drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName(),
-                     getClosestRssi());
     advertise(current_channel++);
     if (current_channel == 15) {
       current_channel = 1;
     }
+
+    if (M5Cardputer.Keyboard.isChange() && M5Cardputer.Keyboard.isPressed()) {
+      peer_menu_open = !peer_menu_open;
+    }
+    Serial.println(peer_menu_open);
   }
 
-  if (peer_menu_open == true) {
-    drawPeersMenu();
-  }
+  updateUi(true, peer_menu_open);
 }

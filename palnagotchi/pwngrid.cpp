@@ -97,12 +97,11 @@ esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
   // Channel switch not working?
   // vTaskDelay(500 / portTICK_PERIOD_MS);
   esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
-  delay(1);
+  delay(102);
   // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv417esp_wifi_80211_tx16wifi_interface_tPKvib
-  vTaskDelay(103 / portTICK_PERIOD_MS);
+  // vTaskDelay(103 / portTICK_PERIOD_MS);
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_AP, pwngrid_beacon_frame,
                                        sizeof(pwngrid_beacon_frame), false);
-  delay(random(0, 10));
   return result;
 }
 
