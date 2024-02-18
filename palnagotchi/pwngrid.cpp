@@ -18,41 +18,28 @@ const uint8_t pwngrid_beacon_raw[] = {
 
 const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
 
-typedef struct {
-  int epoch;
-  String face;
-  String grid_version;
-  String identity;
-  String name;
-  int pwnd_run;
-  int pwnd_tot;
-  String session_id;
-  int timestamp;
-  int uptime;
-  String version;
-} pwngrid_peer;
-
-const uint8_t max_peers = 256;
-uint8_t tot_peers = 0;
-pwngrid_peer peers[max_peers];
+uint16_t friends_tot = 0;
+pwngrid_peer friends_list[1024];
+String friend_last_name = "";
 
 DynamicJsonDocument pal_json(2048);
 String pal_json_str = "";
 int pal_json_len = 0;
 
-void initPwngrid() {
-  wifi_init_config_t WIFI_INIT_CONFIG = WIFI_INIT_CONFIG_DEFAULT();
-  esp_wifi_init(&WIFI_INIT_CONFIG);
-  esp_wifi_set_storage(WIFI_STORAGE_RAM);
-  esp_wifi_set_mode(WIFI_MODE_AP);
-  esp_wifi_start();
-  esp_wifi_set_promiscuous_filter(&filt);
-  esp_wifi_set_promiscuous_rx_cb(&pwnSnifferCallback);
-  esp_wifi_set_promiscuous(true);
-  esp_wifi_set_ps(WIFI_PS_NONE);
+uint16_t getRunTotalPeers() { return friends_tot; }
+uint16_t getTotalPeers() { return friends_tot; }
+String getLastFriendName() { return friend_last_name; }
+
+void getPeers(pwngrid_peer *buffer) {
+  for (int i = 0; i < friends_tot; i++) {
+    buffer[i] = friends_list[i];
+  }
 }
 
-esp_err_t advertisePalnagotchi(uint8_t channel, uint32_t uptime, String face) {
+esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
+                            bool en_sys_seq);
+
+esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
   pal_json["pal"] = true;  // Also detect other Palnagotchis
   pal_json["name"] = "Palnagotchi";
   pal_json["face"] = face;
@@ -63,8 +50,8 @@ esp_err_t advertisePalnagotchi(uint8_t channel, uint32_t uptime, String face) {
   pal_json["pwnd_run"] = 0;
   pal_json["pwnd_tot"] = 0;
   pal_json["session_id"] = "a2:00:64:e6:0b:8b";
-  pal_json["timestamp"] = 255;
-  pal_json["uptime"] = uptime;
+  pal_json["timestamp"] = millis() / 1000;
+  pal_json["uptime"] = millis() / 1000;
   pal_json["version"] = "1.8.4";
   pal_json["policy"]["advertise"] = true;
   pal_json["policy"]["bond_encounters_factor"] = 20000;
@@ -102,47 +89,62 @@ esp_err_t advertisePalnagotchi(uint8_t channel, uint32_t uptime, String face) {
     pwngrid_beacon_frame[frame_byte++] = next_byte;
   }
 
-  // vTaskDelay(500 / portTICK_PERIOD_MS);
   // Channel switch not working?
+  // vTaskDelay(500 / portTICK_PERIOD_MS);
   esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE);
+  delay(1);
   // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv417esp_wifi_80211_tx16wifi_interface_tPKvib
-  vTaskDelay(102 / portTICK_PERIOD_MS);
+  vTaskDelay(103 / portTICK_PERIOD_MS);
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_AP, pwngrid_beacon_frame,
                                        sizeof(pwngrid_beacon_frame), true);
+  delay(random(0, 10));
   return result;
 }
 
-void peerManager(DynamicJsonDocument json) {
-  // Skip if peer list is full
-  if (tot_peers == max_peers) {
-    return;
-  }
+void peerManager(DynamicJsonDocument json, signed int rssi) {
+  String identity = json["identity"].as<String>();
 
-  for (int i = 0; i < tot_peers; i++) {
-    String identity = json["identity"].as<String>();
+  for (int i = 0; i < friends_tot; i++) {
     // Check if peer identity is already in peers array
-    if (peers[i].identity == identity) {
+    if (friends_list[i].identity == identity) {
       return;
     }
-
-    peers[tot_peers].name = json["name"].as<String>();
-    peers[tot_peers].face = json["face"].as<String>();
-    peers[tot_peers].epoch = json["epoch"].as<int>();
-    peers[tot_peers].grid_version = json["grid_version"].as<String>();
-    peers[tot_peers].identity = json["identity"].as<String>();
-    peers[tot_peers].pwnd_run = json["pwnd_run"].as<int>();
-    peers[tot_peers].pwnd_tot = json["pwnd_tot"].as<int>();
-    peers[tot_peers].session_id = json["session_id"].as<String>();
-    peers[tot_peers].timestamp = json["timestamp"].as<int>();
-    peers[tot_peers].uptime = json["uptime"].as<int>();
-    peers[tot_peers].version = json["version"].as<String>();
-    tot_peers++;
   }
+
+  friends_list[friends_tot].name = json["name"].as<String>();
+  friends_list[friends_tot].face = json["face"].as<String>();
+  friends_list[friends_tot].epoch = json["epoch"].as<int>();
+  friends_list[friends_tot].grid_version = json["grid_version"].as<String>();
+  friends_list[friends_tot].identity = identity;
+  friends_list[friends_tot].pwnd_run = json["pwnd_run"].as<int>();
+  friends_list[friends_tot].pwnd_tot = json["pwnd_tot"].as<int>();
+  friends_list[friends_tot].session_id = json["session_id"].as<String>();
+  friends_list[friends_tot].timestamp = json["timestamp"].as<int>();
+  friends_list[friends_tot].uptime = json["uptime"].as<int>();
+  friends_list[friends_tot].version = json["version"].as<String>();
+  friends_list[friends_tot].rssi = json["version"].as<signed int>();
+  friend_last_name = friends_list[friends_tot].name;
+  friends_tot++;
 }
 
 // Detect pwnagotchi adapted from Marauder
 // https://github.com/justcallmekoko/ESP32Marauder/wiki/detect-pwnagotchi
 // https://github.com/justcallmekoko/ESP32Marauder/blob/master/esp32_marauder/WiFiScan.cpp#L2255
+typedef struct {
+  int16_t fctl;
+  int16_t duration;
+  uint8_t da;
+  uint8_t sa;
+  uint8_t bssid;
+  int16_t seqctl;
+  unsigned char payload[];
+} __attribute__((packed)) WifiMgmtHdr;
+
+typedef struct {
+  uint8_t payload[0];
+  WifiMgmtHdr hdr;
+} wifi_ieee80211_packet_t;
+
 void getMAC(char *addr, uint8_t *data, uint16_t offset) {
   sprintf(addr, "%02x:%02x:%02x:%02x:%02x:%02x", data[offset + 0],
           data[offset + 1], data[offset + 2], data[offset + 3],
@@ -155,7 +157,6 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
   wifi_pkt_rx_ctrl_t ctrl = (wifi_pkt_rx_ctrl_t)snifferPacket->rx_ctrl;
   int len = snifferPacket->rx_ctrl.sig_len;
 
-  String display_string = "";
   String src = "";
   String essid = "";
 
@@ -166,66 +167,48 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
         (wifi_ieee80211_packet_t *)snifferPacket->payload;
     const WifiMgmtHdr *hdr = &ipkt->hdr;
 
-    if ((snifferPacket->payload[0] == 0x80) && (buf == 0)) {
+    // if ((snifferPacket->payload[0] == 0x80) && (buf == 0)) {
+    if ((snifferPacket->payload[0] == 0x80)) {
       char addr[] = "00:00:00:00:00:00";
       getMAC(addr, snifferPacket->payload, 10);
       src.concat(addr);
       if (src == "de:ad:be:ef:de:ad") {
-        delay(random(0, 10));
-        Serial.print("RSSI: ");
-        Serial.print(snifferPacket->rx_ctrl.rssi);
-        Serial.print(" Ch: ");
-        Serial.print(snifferPacket->rx_ctrl.channel);
-        Serial.print(" BSSID: ");
-        Serial.print(addr);
-        display_string.concat("CH: " + (String)snifferPacket->rx_ctrl.channel);
-        Serial.print(" ESSID: ");
-        display_string.concat(" -> ");
-
         // Just grab the first 255 bytes of the pwnagotchi beacon
         // because that is where the name is
-        for (int i = 0; i < len - 37; i++) {
-          Serial.print((char)snifferPacket->payload[i + 38]);
-          if (isAscii(snifferPacket->payload[i + 38])) {
-            essid.concat((char)snifferPacket->payload[i + 38]);
+        // Prevent wronguly reading + 1 byte
+        for (int i = 38; i < len; i++) {
+          if (isAscii(snifferPacket->payload[i])) {
+            essid.concat((char)snifferPacket->payload[i]);
           }
         }
 
         DynamicJsonDocument json(1024);  // ArduinoJson v6
-        if (deserializeJson(json, essid)) {
-          Serial.println("\nCould not parse Pwnagotchi json");
-          display_string.concat(essid);
-        } else {
-          Serial.println("\nSuccessfully parsed json");
-          String json_output;
-          serializeJson(json, json_output);  // ArduinoJson v6
-          Serial.println(json_output);
-          display_string.concat(json["name"].as<String>() +
-                                " pwnd: " + json["pwnd_tot"].as<String>());
-          peerManager(json);
-        }
 
-        //        int temp_len = display_string.length();
-        //        for (int i = 0; i < 40 - temp_len; i++)
-        //        {
-        //          display_string.concat(" ");
-        //        }
-        //
-        //        Serial.print(" ");
-        //
-        //        #ifdef HAS_SCREEN
-        //          if (display_obj.display_buffer->size() == 0)
-        //          {
-        //            display_obj.loading = true;
-        //            display_obj.display_buffer->add(display_string);
-        //            display_obj.loading = false;
-        //          }
-        //        #endif
-        //
-        Serial.println();
-        //
-        //        buffer_obj.append(snifferPacket, len);
+        if (deserializeJson(json, essid)) {
+          // Serial.println("\nCould not parse Pwnagotchi json");
+        } else {
+          // Serial.println("\nSuccessfully parsed json");
+          // serializeJson(json, Serial);  // ArduinoJson v6
+          peerManager(json, snifferPacket->rx_ctrl.rssi);
+        }
       }
     }
   }
+}
+
+const wifi_promiscuous_filter_t filter = {
+    .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_DATA};
+
+void initPwngrid() {
+  wifi_init_config_t WIFI_INIT_CONFIG = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&WIFI_INIT_CONFIG);
+  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  esp_wifi_set_mode(WIFI_MODE_AP);
+  esp_wifi_start();
+  esp_wifi_set_promiscuous_filter(&filter);
+  esp_wifi_set_promiscuous(true);
+  esp_wifi_set_promiscuous_rx_cb(&pwnSnifferCallback);
+  // esp_wifi_set_ps(WIFI_PS_NONE);
+  esp_wifi_set_channel(random(0, 14), WIFI_SECOND_CHAN_NONE);
+  delay(1);
 }

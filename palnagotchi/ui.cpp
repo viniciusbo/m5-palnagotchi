@@ -3,6 +3,7 @@
 M5Canvas canvas_top(&M5Cardputer.Display);
 M5Canvas canvas(&M5Cardputer.Display);
 M5Canvas canvas_bot(&M5Cardputer.Display);
+M5Canvas canvas_peers_menu(&M5Cardputer.Display);
 
 int32_t display_w;
 int32_t display_h;
@@ -10,6 +11,29 @@ int32_t canvas_h;
 int32_t canvas_center_x;
 int32_t canvas_top_h;
 int32_t canvas_bot_h;
+int32_t canvas_peers_menu_h;
+int32_t canvas_peers_menu_w;
+
+void initUi() {
+  M5Cardputer.Display.setRotation(1);
+  M5Cardputer.Display.setTextFont(&fonts::Font0);
+  M5Cardputer.Display.fillScreen(TFT_BLACK);
+  M5Cardputer.Display.setTextColor(GREEN);
+
+  display_w = M5Cardputer.Display.width();
+  display_h = M5Cardputer.Display.height();
+  canvas_h = display_h * .8;
+  canvas_center_x = display_w / 2;
+  canvas_top_h = display_h * 0.1;
+  canvas_bot_h = display_h * 0.1;
+  canvas_peers_menu_h = display_h * 0.8;
+  canvas_peers_menu_w = display_w * 0.8;
+
+  canvas.createSprite(display_w, canvas_h);
+  canvas_top.createSprite(display_w, canvas_top_h);
+  canvas_bot.createSprite(display_w, canvas_bot_h);
+  canvas_peers_menu.createSprite(canvas_peers_menu_w, canvas_peers_menu_h);
+}
 
 void drawTopCanvas(uint8_t channel) {
   canvas_top.clear(BLACK);
@@ -44,7 +68,7 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
   canvas_bot.setTextDatum(top_left);
 
   char stats[50] = "FRND 0 (0)";
-  if (last_friend_name != "") {
+  if (friends_run > 0) {
     sprintf(stats, "FRND %d (%d) [%s]", friends_run, friends_tot,
             last_friend_name);
   }
@@ -59,22 +83,17 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
   M5Cardputer.Display.endWrite();
 }
 
-void initUi() {
-  M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextFont(&fonts::Font0);
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
-  M5Cardputer.Display.setTextColor(GREEN);
-
-  display_w = M5Cardputer.Display.width();
-  display_h = M5Cardputer.Display.height();
-  canvas_h = display_h * .8;
-  canvas_center_x = display_w / 2;
-  canvas_top_h = display_h * 0.1;
-  canvas_bot_h = display_h * 0.1;
-
-  canvas.createSprite(display_w, canvas_h);
-  canvas_top.createSprite(display_w, canvas_top_h);
-  canvas_bot.createSprite(display_w, canvas_bot_h);
+void drawPeersMenu() {
+  canvas_peers_menu.clear(BLACK);
+  canvas_peers_menu.setTextSize(1);
+  canvas_peers_menu.setTextColor(GREEN);
+  canvas_peers_menu.setColor(GREEN);
+  // canvas_peers_menu.setTextDatum(top_left);
+  canvas_peers_menu.println("> Back");
+  canvas_peers_menu.println("> No peers found. Seriosly?");
+  M5Cardputer.Display.startWrite();
+  canvas_peers_menu.pushSprite(display_w * 0.1, display_h * 0.1);
+  M5Cardputer.Display.endWrite();
 }
 
 void showMood(String face, String phrase, bool broken) {

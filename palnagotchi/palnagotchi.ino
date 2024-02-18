@@ -1,4 +1,3 @@
-#include "ArduinoJson.h"
 #include "M5Cardputer.h"
 #include "M5Unified.h"
 #include "mood.h"
@@ -19,8 +18,8 @@ void initM5() {
 
 void setup() {
   initM5();
-  initUi();
   initPwngrid();
+  initUi();
   state = STATE_INIT;
 }
 
@@ -43,14 +42,13 @@ void wakeUp() {
 
 void advertise(uint8_t channel) {
   uint32_t elapsed = millis() - last_mood_switch;
-  if (elapsed > 10000) {
+  if (elapsed > 50000) {
     setMood(random(2, 21));
     showMood(getCurrentFace(), getCurrentMood());
     last_mood_switch = millis();
   }
 
-  esp_err_t result =
-      advertisePalnagotchi(channel, system_boot_time, getCurrentFace());
+  esp_err_t result = advertisePalnagotchi(channel, getCurrentFace());
 
   if (result == ESP_ERR_WIFI_IF) {
     showMood(broken_face, "Error: invalid interface", true);
@@ -78,7 +76,7 @@ void loop() {
 
   if (state == STATE_ADVT) {
     drawTopCanvas(current_channel);
-    // drawBottomCanvas();
+    drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName());
     advertise(current_channel++);
     if (current_channel == 15) {
       current_channel = 1;
