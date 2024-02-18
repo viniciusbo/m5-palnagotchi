@@ -138,7 +138,7 @@ void addPeer(DynamicJsonDocument json, signed int rssi) {
   EEPROM.write(0, friends_tot);
 }
 
-const int away_threshold = 300000;
+const int away_threshold = 120000;
 
 void checkGoneFriends() {
   for (int i = 0; i < friends_tot; i++) {

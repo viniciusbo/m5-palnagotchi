@@ -11,9 +11,8 @@
 uint8_t state;
 
 void initM5() {
-  auto cfg = M5.config();
-  M5Cardputer.begin(cfg, true);
-  M5Cardputer.Display.begin();
+  M5.begin();
+  M5.Display.begin();
 }
 
 void setup() {
@@ -35,9 +34,6 @@ void wakeUp() {
     showMood(getCurrentFace(), getCurrentMood());
     delay(1250);
   }
-
-  drawTopCanvas();
-  drawBottomCanvas();
 }
 
 void advertise(uint8_t channel) {
@@ -62,8 +58,10 @@ void advertise(uint8_t channel) {
   }
 }
 
+bool peer_menu_open = true;
+
 void loop() {
-  M5Cardputer.update();
+  M5.update();
 
   if (state == STATE_HALT) {
     return;
@@ -83,5 +81,9 @@ void loop() {
     if (current_channel == 15) {
       current_channel = 1;
     }
+  }
+
+  if (peer_menu_open == true) {
+    drawPeersMenu();
   }
 }

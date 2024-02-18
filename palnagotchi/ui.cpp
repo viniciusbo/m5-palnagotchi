@@ -1,9 +1,9 @@
 #include "ui.h"
 
-M5Canvas canvas_top(&M5Cardputer.Display);
-M5Canvas canvas(&M5Cardputer.Display);
-M5Canvas canvas_bot(&M5Cardputer.Display);
-M5Canvas canvas_peers_menu(&M5Cardputer.Display);
+M5Canvas canvas_top(&M5.Display);
+M5Canvas canvas(&M5.Display);
+M5Canvas canvas_bot(&M5.Display);
+M5Canvas canvas_peers_menu(&M5.Display);
 
 int32_t display_w;
 int32_t display_h;
@@ -15,13 +15,13 @@ int32_t canvas_peers_menu_h;
 int32_t canvas_peers_menu_w;
 
 void initUi() {
-  M5Cardputer.Display.setRotation(1);
-  M5Cardputer.Display.setTextFont(&fonts::Font0);
-  M5Cardputer.Display.fillScreen(TFT_BLACK);
-  M5Cardputer.Display.setTextColor(GREEN);
+  M5.Display.setRotation(1);
+  M5.Display.setTextFont(&fonts::Font0);
+  M5.Display.fillScreen(TFT_BLACK);
+  M5.Display.setTextColor(GREEN);
 
-  display_w = M5Cardputer.Display.width();
-  display_h = M5Cardputer.Display.height();
+  display_w = M5.Display.width();
+  display_h = M5.Display.height();
   canvas_h = display_h * .8;
   canvas_center_x = display_w / 2;
   canvas_top_h = display_h * 0.1;
@@ -54,9 +54,9 @@ void drawTopCanvas(uint8_t channel) {
   canvas_top.drawString(right_str, display_w, 3);
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 
-  M5Cardputer.Display.startWrite();
+  M5.Display.startWrite();
   canvas_top.pushSprite(0, 0);
-  M5Cardputer.Display.endWrite();
+  M5.Display.endWrite();
 }
 
 void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
@@ -92,22 +92,9 @@ void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
   canvas_bot.drawString("NOT AI", display_w, 5);
   canvas_bot.drawLine(0, 0, display_w, 0);
 
-  M5Cardputer.Display.startWrite();
+  M5.Display.startWrite();
   canvas_bot.pushSprite(0, canvas_top_h + canvas_h);
-  M5Cardputer.Display.endWrite();
-}
-
-void drawPeersMenu() {
-  canvas_peers_menu.clear(BLACK);
-  canvas_peers_menu.setTextSize(1);
-  canvas_peers_menu.setTextColor(GREEN);
-  canvas_peers_menu.setColor(GREEN);
-  // canvas_peers_menu.setTextDatum(top_left);
-  canvas_peers_menu.println("> Back");
-  canvas_peers_menu.println("> No peers found. Seriosly?");
-  M5Cardputer.Display.startWrite();
-  canvas_peers_menu.pushSprite(display_w * 0.1, display_h * 0.1);
-  M5Cardputer.Display.endWrite();
+  M5.Display.endWrite();
 }
 
 void showMood(String face, String phrase, bool broken) {
@@ -125,16 +112,32 @@ void showMood(String face, String phrase, bool broken) {
   canvas.setTextSize(1);
   canvas.drawString(phrase, canvas_center_x, canvas_h - 23);
 
-  M5Cardputer.Display.startWrite();
+  M5.Display.startWrite();
   canvas.pushSprite(0, canvas_top_h);
-  M5Cardputer.Display.endWrite();
+  M5.Display.endWrite();
+}
+
+void drawPeersMenu() {
+  // canvas_peers_menu.fillRect(0, 0, canvas_peers_menu_w, canvas_peers_menu_h,
+  //  WHITE);
+  M5.Display.startWrite();
+  canvas_peers_menu.clear(WHITE);
+  canvas_peers_menu.setTextSize(1);
+  canvas_peers_menu.setTextColor(GREEN);
+  canvas_peers_menu.setColor(GREEN);
+  canvas_peers_menu.setTextDatum(top_left);
+  canvas_peers_menu.println("> Back");
+  canvas_peers_menu.println("> No peers found. Seriosly?");
+  canvas_peers_menu.pushSprite(display_w * 0.1, display_h * 0.1);
+  // canvas_peers_menu.pushSprite(0, 0);
+  M5.Display.endWrite();
 }
 
 // #define ARROW_UP ';'
 // #define ARROW_DOWN '.'
 
 // bool check_prev_press() {
-//   if (M5Cardputer.Keyboard.isKeyPressed(ARROW_UP)) {
+//   if (M5.Keyboard.isKeyPressed(ARROW_UP)) {
 //     return true;
 //   }
 //
@@ -142,7 +145,7 @@ void showMood(String face, String phrase, bool broken) {
 // }
 //
 // bool check_next_press() {
-//   if (M5Cardputer.Keyboard.isKeyPressed(ARROW_DOWN)) {
+//   if (M5.Keyboard.isKeyPressed(ARROW_DOWN)) {
 //     return true;
 //   }
 //
