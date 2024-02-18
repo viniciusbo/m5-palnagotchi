@@ -76,7 +76,8 @@ void loop() {
 
   if (state == STATE_ADVT) {
     drawTopCanvas(current_channel);
-    drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName());
+    drawBottomCanvas(getRunTotalPeers(), getTotalPeers(), getLastFriendName(),
+                     getClosestRssi());
     advertise(current_channel++);
     if (current_channel == 15) {
       current_channel = 1;

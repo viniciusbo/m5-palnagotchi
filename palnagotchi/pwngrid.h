@@ -19,6 +19,8 @@ typedef struct {
   int uptime;
   String version;
   signed int rssi;
+  int last_ping;
+  bool gone;
 } pwngrid_peer;
 
 void initPwngrid();
@@ -27,3 +29,4 @@ void getPeers(pwngrid_peer *buffer);
 uint8_t getRunTotalPeers();
 uint8_t getTotalPeers();
 String getLastFriendName();
+signed int getClosestRssi();

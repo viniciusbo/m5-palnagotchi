@@ -22,10 +22,6 @@ uint8_t friends_tot = 0;
 pwngrid_peer friends_list[1024];
 String friend_last_name = "";
 
-DynamicJsonDocument pal_json(2048);
-String pal_json_str = "";
-int pal_json_len = 0;
-
 uint8_t getRunTotalPeers() { return friends_tot; }
 uint8_t getTotalPeers() {
   if (EEPROM.length() == 0) {
@@ -46,6 +42,9 @@ esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
                             bool en_sys_seq);
 
 esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
+  DynamicJsonDocument pal_json(2048);
+  String pal_json_str = "";
+
   pal_json["pal"] = true;  // Also detect other Palnagotchis
   pal_json["name"] = "Palnagotchi";
   pal_json["face"] = face;
@@ -113,6 +112,8 @@ void addPeer(DynamicJsonDocument json, signed int rssi) {
   for (int i = 0; i < friends_tot; i++) {
     // Check if peer identity is already in peers array
     if (friends_list[i].identity == identity) {
+      friends_list[i].gone = false;
+      friends_list[i].rssi = rssi;
       return;
     }
   }
@@ -129,9 +130,37 @@ void addPeer(DynamicJsonDocument json, signed int rssi) {
   friends_list[friends_tot].uptime = json["uptime"].as<int>();
   friends_list[friends_tot].version = json["version"].as<String>();
   friends_list[friends_tot].rssi = rssi;
+  friends_list[friends_tot].last_ping = millis();
+  friends_list[friends_tot].gone = false;
   friend_last_name = friends_list[friends_tot].name;
   friends_tot++;
   EEPROM.write(0, friends_tot);
+}
+
+const int away_threshold = 300000;
+
+void checkGoneFriends() {
+  for (int i = 0; i < friends_tot; i++) {
+    // Check if peer is away for more then
+    int away_secs = friends_list[i].last_ping - millis();
+    if (away_secs > away_threshold) {
+      friends_list[i].gone = true;
+      return;
+    }
+  }
+}
+
+signed int getClosestRssi() {
+  signed int closest = -1000;
+
+  for (int i = 0; i < friends_tot; i++) {
+    // Check if peer is away for more then
+    if (friends_list[i].gone == false && friends_list[i].rssi > closest) {
+      closest = friends_list[i].rssi;
+    }
+  }
+
+  return closest;
 }
 
 // Detect pwnagotchi adapted from Marauder
@@ -195,6 +224,7 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
         } else {
           // Serial.println("\nSuccessfully parsed json");
           // serializeJson(json, Serial);  // ArduinoJson v6
+          Serial.println(snifferPacket->rx_ctrl.rssi);
           addPeer(json, snifferPacket->rx_ctrl.rssi);
         }
       }

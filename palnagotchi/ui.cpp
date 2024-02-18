@@ -60,17 +60,31 @@ void drawTopCanvas(uint8_t channel) {
 }
 
 void drawBottomCanvas(uint8_t friends_run, uint8_t friends_tot,
-                      String last_friend_name) {
+                      String last_friend_name, signed int rssi) {
   canvas_bot.clear(BLACK);
   canvas_bot.setTextSize(1);
   canvas_bot.setTextColor(GREEN);
   canvas_bot.setColor(GREEN);
   canvas_bot.setTextDatum(top_left);
 
+  // https://github.com/evilsocket/pwnagotchi/blob/2122af4e264495d32ee415c074da8efd905901f0/pwnagotchi/ui/view.py#L191
+  String rssi_bars = "";
+  if (rssi != -1000) {
+    if (rssi >= -67) {
+      rssi_bars = "||||";
+    } else if (rssi >= -70) {
+      rssi_bars = "|||";
+    } else if (rssi >= -80) {
+      rssi_bars = "||";
+    } else {
+      rssi_bars = "|";
+    }
+  }
+
   char stats[50] = "FRND 0 (0)";
   if (friends_run > 0) {
-    sprintf(stats, "FRND %d (%d) [%s]", friends_run, friends_tot,
-            last_friend_name);
+    sprintf(stats, "FRND %d (%d) [%s] %s", friends_run, friends_tot,
+            last_friend_name, rssi_bars);
   }
 
   canvas_bot.drawString(stats, 0, 5);

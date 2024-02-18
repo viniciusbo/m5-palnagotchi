@@ -14,6 +14,5 @@ I don't like to see a sad Pwnagotchi.
 
 ## Planned features
 
-- Customize name, face and other Pwngrid advertising data via UI
-- Detect and show friendly units in Cardputer via UI (pwnagotchi sniffer adapted from ESP32 Marauder)
-- Pwngrid spam? Not sure yet
+- Show friends list in UI
+- Friend spam? Not sure yet
