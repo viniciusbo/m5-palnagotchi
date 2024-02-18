@@ -50,8 +50,8 @@ esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
   pal_json["pwnd_run"] = 0;
   pal_json["pwnd_tot"] = 0;
   pal_json["session_id"] = "a2:00:64:e6:0b:8b";
-  pal_json["timestamp"] = millis() / 1000;
-  pal_json["uptime"] = millis() / 1000;
+  pal_json["timestamp"] = 0;
+  pal_json["uptime"] = 0;
   pal_json["version"] = "1.8.4";
   pal_json["policy"]["advertise"] = true;
   pal_json["policy"]["bond_encounters_factor"] = 20000;
@@ -59,9 +59,9 @@ esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
   pal_json["policy"]["sad_num_epochs"] = 0;
   pal_json["policy"]["excited_num_epochs"] = 9999;
 
-  int pal_json_len = measureJson(pal_json);
+  uint16_t pal_json_len = measureJson(pal_json);
   serializeJson(pal_json, pal_json_str);
-  uint8_t header_len = 2 + (pal_json_len / 255 * 2);
+  uint8_t header_len = 2 + ((uint8_t)(pal_json_len / 255) * 2);
   uint8_t pwngrid_beacon_frame[raw_beacon_len + pal_json_len + header_len];
   memcpy(pwngrid_beacon_frame, pwngrid_beacon_raw, raw_beacon_len);
 
@@ -96,7 +96,7 @@ esp_err_t advertisePalnagotchi(uint8_t channel, String face) {
   // https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/network/esp_wifi.html#_CPPv417esp_wifi_80211_tx16wifi_interface_tPKvib
   vTaskDelay(103 / portTICK_PERIOD_MS);
   esp_err_t result = esp_wifi_80211_tx(WIFI_IF_AP, pwngrid_beacon_frame,
-                                       sizeof(pwngrid_beacon_frame), true);
+                                       sizeof(pwngrid_beacon_frame), false);
   delay(random(0, 10));
   return result;
 }
@@ -175,7 +175,6 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
       if (src == "de:ad:be:ef:de:ad") {
         // Just grab the first 255 bytes of the pwnagotchi beacon
         // because that is where the name is
-        // Prevent wronguly reading + 1 byte
         for (int i = 38; i < len; i++) {
           if (isAscii(snifferPacket->payload[i])) {
             essid.concat((char)snifferPacket->payload[i]);
