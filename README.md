@@ -15,6 +15,7 @@ The Pwngrid works by sending Wifi beacon frames with a JSON serialized payload i
 - Top bar shows UPS level and uptime.
 - Bottom bar shows total friends made in this run, all time total friends between parenthesis (needs EEPROM) and signal strengh indicator of closest friend.
 - Nearby pwnagotchis show all nearby units and its signal strength.
+- Palnagotchi gets a random mood every minute or so.
 
 ## Why?
 
