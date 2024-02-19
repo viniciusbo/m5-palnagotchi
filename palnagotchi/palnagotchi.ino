@@ -3,7 +3,7 @@
 #include "ui.h"
 
 #define STATE_INIT 0
-#define STATE_ADVT 1
+#define STATE_WAKE 1
 #define STATE_HALT 255
 
 uint8_t state;
@@ -65,10 +65,10 @@ void loop() {
 
   if (state == STATE_INIT) {
     wakeUp();
-    state = STATE_ADVT;
+    state = STATE_WAKE;
   }
 
-  if (state == STATE_ADVT) {
+  if (state == STATE_WAKE) {
     checkPwngridGoneFriends();
     advertise(current_channel++);
     if (current_channel == 15) {

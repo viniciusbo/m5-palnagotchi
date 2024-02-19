@@ -9,7 +9,7 @@ uint8_t getPwngridTotalPeers() {
     return pwngrid_friends_tot;
   }
 
-  return EEPROM.read(0);
+  return EEPROM.read(0) + pwngrid_friends_tot;
 }
 
 uint8_t getPwngridRunTotalPeers() { return pwngrid_friends_tot; }
@@ -37,10 +37,10 @@ const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
                             bool en_sys_seq);
 
-esp_err_t pwngridAdvertise(uint8_t channel, String face) {
-  DynamicJsonDocument pal_json(2048);
-  String pal_json_str = "";
+StaticJsonDocument<1024> pal_json;
+String pal_json_str = "";
 
+esp_err_t pwngridAdvertise(uint8_t channel, String face) {
   pal_json["pal"] = true;  // Also detect other Palnagotchis
   pal_json["name"] = "Palnagotchi";
   pal_json["face"] = face;
@@ -59,9 +59,9 @@ esp_err_t pwngridAdvertise(uint8_t channel, String face) {
   pal_json["policy"]["bored_num_epochs"] = 0;
   pal_json["policy"]["sad_num_epochs"] = 0;
   pal_json["policy"]["excited_num_epochs"] = 9999;
-
-  uint16_t pal_json_len = measureJson(pal_json);
   serializeJson(pal_json, pal_json_str);
+
+  uint16_t pal_json_len = serializeJson(pal_json, pal_json_str);
   uint8_t header_len = 2 + ((uint8_t)(pal_json_len / 255) * 2);
   uint8_t pwngrid_beacon_frame[raw_beacon_len + pal_json_len + header_len];
   memcpy(pwngrid_beacon_frame, pwngrid_beacon_raw, raw_beacon_len);
@@ -185,17 +185,18 @@ void getMAC(char *addr, uint8_t *data, uint16_t offset) {
           data[offset + 4], data[offset + 5]);
 }
 
+DynamicJsonDocument json(1024);  // ArduinoJson v6s
+
 void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
   wifi_promiscuous_pkt_t *snifferPacket = (wifi_promiscuous_pkt_t *)buf;
   WifiMgmtHdr *frameControl = (WifiMgmtHdr *)snifferPacket->payload;
-  wifi_pkt_rx_ctrl_t ctrl = (wifi_pkt_rx_ctrl_t)snifferPacket->rx_ctrl;
-  int len = snifferPacket->rx_ctrl.sig_len;
 
   String src = "";
   String essid = "";
 
   if (type == WIFI_PKT_MGMT) {
-    len -= 4;
+    // Remove frame check sequence bytes
+    int len = snifferPacket->rx_ctrl.sig_len - 4;
     int fctl = ntohs(frameControl->fctl);
     const wifi_ieee80211_packet_t *ipkt =
         (wifi_ieee80211_packet_t *)snifferPacket->payload;
@@ -215,7 +216,6 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
           }
         }
 
-        DynamicJsonDocument json(1024);  // ArduinoJson v6
         ArduinoJson::V6215PB2::DeserializationError result =
             deserializeJson(json, essid);
         if (result == ArduinoJson::V6215PB2::DeserializationError::Ok) {
