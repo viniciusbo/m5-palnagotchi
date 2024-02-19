@@ -8,7 +8,7 @@ I reverse engineered the Pwngrid advertisement protocol and made it possible for
 
 The Pwngrid works by sending Wifi beacon frames with a JSON serialized payload in Wifi AC headers, containing the Pwnagotchi's data (name, face, pwns, brain policy between others). That's how nearby Pwnagotchis can detect and also learn each other. By crafting a custom beacon frame, this app can appear as a Pwnagotchi to other Pwnagotchis.
 
-# Usage
+## Usage
 
 - Run the app to start advertisement.
 - ESC or m toggles the menu. Use arrow keys or tab to navigate and OK to select option. Esc or m to go back to main menu.
