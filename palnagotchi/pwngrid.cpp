@@ -101,10 +101,8 @@ esp_err_t pwngridAdvertise(uint8_t channel, String face) {
   return result;
 }
 
-DynamicJsonDocument sniffed_json(2048);  // ArduinoJson v6s
-
-void pwngridAddPeer(signed int rssi) {
-  String identity = sniffed_json["identity"].as<String>();
+void pwngridAddPeer(DynamicJsonDocument &json, signed int rssi) {
+  String identity = json["identity"].as<String>();
 
   for (uint8_t i = 0; i < pwngrid_friends_tot; i++) {
     // Check if peer identity is already in peers array
@@ -119,23 +117,19 @@ void pwngridAddPeer(signed int rssi) {
   pwngrid_peers[pwngrid_friends_tot].rssi = rssi;
   pwngrid_peers[pwngrid_friends_tot].last_ping = millis();
   pwngrid_peers[pwngrid_friends_tot].gone = false;
-  pwngrid_peers[pwngrid_friends_tot].name = sniffed_json["name"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].face = sniffed_json["face"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].epoch = sniffed_json["epoch"].as<int>();
+  pwngrid_peers[pwngrid_friends_tot].name = json["name"].as<String>();
+  pwngrid_peers[pwngrid_friends_tot].face = json["face"].as<String>();
+  pwngrid_peers[pwngrid_friends_tot].epoch = json["epoch"].as<int>();
   pwngrid_peers[pwngrid_friends_tot].grid_version =
-      sniffed_json["grid_version"].as<String>();
+      json["grid_version"].as<String>();
   pwngrid_peers[pwngrid_friends_tot].identity = identity;
-  pwngrid_peers[pwngrid_friends_tot].pwnd_run =
-      sniffed_json["pwnd_run"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].pwnd_tot =
-      sniffed_json["pwnd_tot"].as<int>();
+  pwngrid_peers[pwngrid_friends_tot].pwnd_run = json["pwnd_run"].as<int>();
+  pwngrid_peers[pwngrid_friends_tot].pwnd_tot = json["pwnd_tot"].as<int>();
   pwngrid_peers[pwngrid_friends_tot].session_id =
-      sniffed_json["session_id"].as<String>();
-  pwngrid_peers[pwngrid_friends_tot].timestamp =
-      sniffed_json["timestamp"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].uptime = sniffed_json["uptime"].as<int>();
-  pwngrid_peers[pwngrid_friends_tot].version =
-      sniffed_json["version"].as<String>();
+      json["session_id"].as<String>();
+  pwngrid_peers[pwngrid_friends_tot].timestamp = json["timestamp"].as<int>();
+  pwngrid_peers[pwngrid_friends_tot].uptime = json["uptime"].as<int>();
+  pwngrid_peers[pwngrid_friends_tot].version = json["version"].as<String>();
   pwngrid_last_friend_name = pwngrid_peers[pwngrid_friends_tot].name;
   pwngrid_friends_tot++;
   EEPROM.write(0, pwngrid_friends_tot);
@@ -220,12 +214,14 @@ void pwnSnifferCallback(void *buf, wifi_promiscuous_pkt_type_t type) {
           }
         }
 
+        DynamicJsonDocument sniffed_json(2048);  // ArduinoJson v6s
         ArduinoJson::V6215PB2::DeserializationError result =
             deserializeJson(sniffed_json, essid);
+
         if (result == ArduinoJson::V6215PB2::DeserializationError::Ok) {
           // Serial.println("\nSuccessfully parsed json");
           // serializeJson(json, Serial);  // ArduinoJson v6
-          pwngridAddPeer(snifferPacket->rx_ctrl.rssi);
+          pwngridAddPeer(sniffed_json, snifferPacket->rx_ctrl.rssi);
         } else if (result == ArduinoJson::V6215PB2::DeserializationError::
                                  IncompleteInput) {
           Serial.println("Deserialization error: incomplete input");
