@@ -37,10 +37,10 @@ const int raw_beacon_len = sizeof(pwngrid_beacon_raw);
 esp_err_t esp_wifi_80211_tx(wifi_interface_t ifx, const void *buffer, int len,
                             bool en_sys_seq);
 
-DynamicJsonDocument pal_json(2048);
-String pal_json_str = "";
-
 esp_err_t pwngridAdvertise(uint8_t channel, String face) {
+  DynamicJsonDocument pal_json(2048);
+  String pal_json_str = "";
+
   pal_json["pal"] = true;  // Also detect other Palnagotchis
   pal_json["name"] = "Palnagotchi";
   pal_json["face"] = face;
@@ -60,7 +60,8 @@ esp_err_t pwngridAdvertise(uint8_t channel, String face) {
   pal_json["policy"]["sad_num_epochs"] = 0;
   pal_json["policy"]["excited_num_epochs"] = 9999;
 
-  uint16_t pal_json_len = serializeJson(pal_json, pal_json_str);
+  serializeJson(pal_json, pal_json_str);
+  uint16_t pal_json_len = measureJson(pal_json);
   uint8_t header_len = 2 + ((uint8_t)(pal_json_len / 255) * 2);
   uint8_t pwngrid_beacon_frame[raw_beacon_len + pal_json_len + header_len];
   memcpy(pwngrid_beacon_frame, pwngrid_beacon_raw, raw_beacon_len);
