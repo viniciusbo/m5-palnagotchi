@@ -4,14 +4,7 @@ uint8_t pwngrid_friends_tot = 0;
 pwngrid_peer pwngrid_peers[255];
 String pwngrid_last_friend_name = "";
 
-uint8_t getPwngridTotalPeers() {
-  if (EEPROM.length() == 0) {
-    return pwngrid_friends_tot;
-  }
-
-  return EEPROM.read(0) + pwngrid_friends_tot;
-}
-
+uint8_t getPwngridTotalPeers() { return EEPROM.read(0) + pwngrid_friends_tot; }
 uint8_t getPwngridRunTotalPeers() { return pwngrid_friends_tot; }
 String getPwngridLastFriendName() { return pwngrid_last_friend_name; }
 pwngrid_peer *getPwngridPeers() { return pwngrid_peers; }

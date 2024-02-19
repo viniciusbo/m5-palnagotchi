@@ -135,14 +135,9 @@ void drawTopCanvas() {
   int sr = ellapsed % 3600;
   int8_t m = sr / 60;
   int8_t s = sr % 60;
-  char right_str[25] = "UP 00:00:00";
-  sprintf(right_str, "UP %02d:%02d:%02d", h, m, s);
-  // M5 getbattery level might not return data sometimes
-  // TODO: check for return value
-  // char right_str[50] = "UPS 0%  UP 00:00:00";
-  // sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d",
-  // M5.Power.getBatteryLevel(),
-  //         h, m, s);
+  char right_str[50] = "UPS 0%  UP 00:00:00";
+  sprintf(right_str, "UPS %i%% UP %02d:%02d:%02d", M5.Power.getBatteryLevel(),
+          h, m, s);
   canvas_top.drawString(right_str, display_w, 3);
   canvas_top.drawLine(0, canvas_top_h - 1, display_w, canvas_top_h - 1);
 }
