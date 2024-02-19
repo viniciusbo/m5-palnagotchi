@@ -64,7 +64,7 @@ void loop() {
   }
 
   if (state == STATE_INIT) {
-    wakeUp();
+    // wakeUp();
     state = STATE_WAKE;
   }
 

@@ -20,7 +20,9 @@ struct menu {
 };
 
 menu main_menu[] = {
-    {"Nearby Pwnagotchis", 2}, {"Settings", 4}, {"About", 8}
+    {"Nearby Pwnagotchis", 2},
+    // {"Settings", 4},
+    {"About", 8}
     // {"Friend spam", 16},
 };
 
@@ -263,7 +265,7 @@ void drawSettingsMenu() {
 
 void drawAboutMenu() {
   canvas_main.clear(BLACK);
-  canvas_main.qrcode("http://vinicius.borriello.com.br",
+  canvas_main.qrcode("https://github.com/viniciusbo/m5-palnagotchi",
                      (display_w / 2) - (display_h * 0.3), PADDING,
                      display_h * 0.65);
 }
