@@ -4,6 +4,18 @@ uint8_t pwngrid_friends_tot = 0;
 uint8_t pwngrid_friends_run = 0;
 pwngrid_peer pwngrid_peers[255];
 String pwngrid_last_friend_name = "";
+char pwn_name[26] = "Palnagotchi";
+
+String getPwnName() { return String(pwn_name); }
+
+void setPwnName(String new_name) {
+  new_name.toCharArray(pwn_name, 26);
+  for (int i = 0; i < 26; i++) {
+    EEPROM.write(2 + i, pwn_name[i]);
+  }
+  EEPROM.write(1, 0x42); // Magic byte to indicate name is set
+  EEPROM.commit();
+}
 
 uint8_t getPwngridRunTotalPeers() { return pwngrid_friends_run; }
 String getPwngridLastFriendName() { return pwngrid_last_friend_name; }
@@ -35,7 +47,7 @@ esp_err_t pwngridAdvertise(uint8_t channel, char session_id[18], String face) {
   String pal_json_str = "";
 
   pal_json["pal"] = true;  // Also detect other Palnagotchis
-  pal_json["name"] = "Palnagotchi";
+  pal_json["name"] = pwn_name;
   pal_json["face"] = face;
   pal_json["epoch"] = 1;
   pal_json["grid_version"] = "1.10.3";
@@ -237,6 +249,19 @@ const wifi_promiscuous_filter_t filter = {
     .filter_mask = WIFI_PROMIS_FILTER_MASK_MGMT | WIFI_PROMIS_FILTER_MASK_DATA};
 
 void initPwngrid() {
+  if (EEPROM.read(1) == 0x42) {
+    char stored_name[26];
+    for (int i = 0; i < 26; i++) {
+      stored_name[i] = EEPROM.read(2 + i);
+    }
+    memcpy(pwn_name, stored_name, 26);
+    pwn_name[25] = 0; // Ensure null termination
+  }
+
+  // Load total friends
+  pwngrid_friends_tot = EEPROM.read(0);
+  if (pwngrid_friends_tot == 255) pwngrid_friends_tot = 0;
+
   // Disable WiFi logging
   esp_log_level_set("wifi", ESP_LOG_NONE);
 

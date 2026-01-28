@@ -30,3 +30,5 @@ uint8_t getPwngridRunTotalPeers();
 String getPwngridLastFriendName();
 signed int getPwngridClosestRssi();
 void checkPwngridGoneFriends();
+String getPwnName();
+void setPwnName(String new_name);
