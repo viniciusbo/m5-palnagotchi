@@ -1,4 +1,4 @@
-# Palnagotchi for M5 Cardputer
+# Palnagotchi for M5Stack
 
 ![Palnagotchi](https://github.com/viniciusbo/m5-palnagotchi/blob/master/palnagotchi.jpg?raw=true)
 
@@ -11,6 +11,7 @@ The Pwngrid works by sending Wifi beacon frames with a JSON serialized payload i
 ## Supported devices
 
 - Cardputer
+- Cardputer ADV
 - StickC Plus2
 - StickC (untested)
 - AtomS3
@@ -22,7 +23,7 @@ The Pwngrid works by sending Wifi beacon frames with a JSON serialized payload i
 
 - Run the app to start advertisement.
 - Button layouts:
-  - Cardputer: ESC or m toggles the menu. Use arrow keys or tab to navigate and OK to select option. Esc or m to go back to main menu.
+  - Cardputer / Cardputer ADV: ESC or m toggles the menu. Use arrow keys or tab to navigate and OK to select option. Esc or m to go back to main menu.
   - StickC Plus2: Long press M5 button to toggle menu. Use top and bottom keys to navigate and M5 button (short press) to select option.
   - AtomS3(R): Long press display to toggle menu. Use double/triple tap display to navigate and short press display to select option.
   - Dial: Long press M5 button to toggle menu. Use rotary encoder to navigate. Short press M5 button to select.
